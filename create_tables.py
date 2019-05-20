@@ -23,12 +23,14 @@ def create_database():
 
 
 def drop_tables(cur, conn):
+    # drop tables
     for query in drop_table_queries:
         cur.execute(query)
         conn.commit()
 
 
 def create_tables(cur, conn):
+    # create tables
     for query in create_table_queries:
         cur.execute(query)
         conn.commit()

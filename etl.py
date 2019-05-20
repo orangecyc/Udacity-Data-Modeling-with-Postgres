@@ -6,6 +6,16 @@ from sql_queries import *
 
 
 def process_song_file(cur, filepath):
+    """
+    This procedure processes a song file whose filepath has been provided as an arugment.
+    It extracts the song information in order to store it into the songs table.
+    Then it extracts the artist information in order to store it into the artists table.
+
+    INPUTS: 
+    * cur the cursor variable
+    * filepath the file path to the song file
+    """
+    
     # open song file
     df = pd.read_json(filepath, lines=True)
 
@@ -19,6 +29,21 @@ def process_song_file(cur, filepath):
 
 
 def process_log_file(cur, filepath):
+    """
+    This procedure processes a log file whose filepath has been provided as an arugment.
+    It first extracts all the log record item of playing song.
+    Base on the data, this procedure first extracts and transform the timestamp data and 
+    store it into time table.
+    Then it extracts the user information in order to store it into the users table.
+    Finally it matches data from the previously created songs table and artists tables
+    with the song title, artist name and song duration of the log record,
+    and store the matched data into the songplays table.
+
+    INPUTS: 
+    * cur the cursor variable
+    * filepath the file path to the log file
+    """
+    
     # open log file
     df = pd.read_json(filepath, lines=True)
 
@@ -40,8 +65,8 @@ def process_log_file(cur, filepath):
     user_df = df[['userId', 'firstName', 'lastName', 'gender', 'level']]
     
     # remove duplicated rows which contains redundant user data
-    # to avoid alert poping up, this line is commented
-    #user_df.drop_duplicates(subset = None, keep = 'first', inplace = True)
+    # this line is not necessary hence commented
+    # user_df.drop_duplicates(subset = None, keep = 'first', inplace = True)
 
     # insert user records
     for i, row in user_df.iterrows():
@@ -54,16 +79,32 @@ def process_log_file(cur, filepath):
         cur.execute(song_select, (row.song, row.artist, row.length))
         results = cur.fetchone()
         
-        songid, artistid = results if results else None, None
+        if results:
+            songid, artistid = results
+        else:
+            songid, artistid = None, None
 
         # insert songplay record
-        songplay_data = (index, pd.to_datetime(row.ts, unit='ms'), row.userId, \
+        songplay_data = (pd.to_datetime(row.ts, unit='ms'), row.userId, \
                         row.level, songid, artistid, row.sessionId, \
                         row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    This procedure get a list of all files matching extension .json from the filepath 
+    provided as an arugment.
+    It then pass the items in the file list one by one to the function provided 
+    as an arugment (func), for the iterative process over files.
+
+    INPUTS: 
+    * cur the cursor variable
+    * conn the connection variable
+    * filepath the file path
+    * func the function for iterative process
+    """
+    
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
